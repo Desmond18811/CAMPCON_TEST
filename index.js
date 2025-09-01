@@ -1,15 +1,21 @@
 import express from 'express';
 import connectDb from './Database/db.js';
-
 import dotenv from 'dotenv';
 import subscriptionRouter from "./Router/subscriptionRouter.js";
 import authRouter from "./Router/authRouter.js";
 import resourcesRouter from "./Router/resourcesRouter.js";
+import cors from 'cors'; // Import the cors package
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT;
+
+// Add CORS middleware
+app.use(cors({
+    origin: ['http://localhost:5173', 'http://localhost:3000'], // Add your frontend URLs
+    credentials: true
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
