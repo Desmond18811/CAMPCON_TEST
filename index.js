@@ -5,6 +5,7 @@ import subscriptionRouter from "./Router/subscriptionRouter.js";
 import authRouter from "./Router/authRouter.js";
 import resourcesRouter from "./Router/resourcesRouter.js";
 import cors from 'cors';
+import passport from "./Database/passport.js"; // Adjust path to your Passport config file
 
 dotenv.config();
 
@@ -20,10 +21,13 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Mount subscriber routes
-app.use('/api/subscribe', subscriptionRouter)
+// Initialize Passport (no session middleware needed for JWT)
+app.use(passport.initialize());
+
+// Mount routes
+app.use('/api/subscribe', subscriptionRouter);
 app.use('/api/auth', authRouter);
-app.use('/api/resources', resourcesRouter)
+app.use('/api/resources', resourcesRouter);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -39,4 +43,6 @@ connectDb().then(() => {
     app.listen(PORT, () => {
         console.log(`🟢 Listening on port http://localhost:${PORT}`);
     });
+}).catch(err => {
+    console.error('Failed to connect to DB:', err);
 });

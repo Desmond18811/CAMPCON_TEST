@@ -1,14 +1,15 @@
 import passport from 'passport';
-import GoogleStrategy from 'passport-google-oauth20';
-import LocalStrategy from 'passport-google-oauth20';
-import User from '../Models/User.js'
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20'; // Corrected import
+import { Strategy as LocalStrategy } from 'passport-local'; // Corrected import
+import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt'; // Added for JWT
+import User from '../Models/User.js';
 
 // Local strategy for email/password login
 passport.use(
     new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
         try {
             // Find user by email
-            const user = await User.findOne({ email }).select('+password');
+            const user = await User.findOne({ email });
 
             if (!user) {
                 return done(null, false, { message: 'Incorrect email or password' });
@@ -56,12 +57,19 @@ passport.use(
                     return done(null, user);
                 }
 
+                // Generate unique username
+                let username = profile.displayName.replace(/\s+/g, '').toLowerCase();
+                let existing = await User.findOne({ username });
+                if (existing) {
+                    username += Math.random().toString(36).substring(2, 7);
+                }
+
                 // Create new user with Google auth
                 user = await User.create({
                     googleId: profile.id,
-                    username: profile.displayName.replace(/\s+/g, '').toLowerCase() + Math.random().toString(36).substring(7),
+                    username,
                     email: profile.emails[0].value,
-                    school: 'Unknown' // You might want to change this or make it required in a different way
+                    school: 'Unknown' // Consider making this optional or handle post-creation
                 });
 
                 return done(null, user);
@@ -72,19 +80,27 @@ passport.use(
     )
 );
 
-// Serialize user for session
-passport.serializeUser((user, done) => {
-    done(null, user.id);
-});
+// JWT strategy (added as per request)
+passport.use(
+    new JwtStrategy(
+        {
+            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), // Expect JWT in Authorization: Bearer <token>
+            secretOrKey: process.env.JWT_SECRET
+        },
+        async (jwtPayload, done) => {
+            try {
+                const user = await User.findById(jwtPayload.id);
+                if (user) {
+                    return done(null, user);
+                }
+                return done(null, false);
+            } catch (err) {
+                return done(err);
+            }
+        }
+    )
+);
 
-// Deserialize user from session
-passport.deserializeUser(async (id, done) => {
-    try {
-        const user = await User.findById(id);
-        done(null, user);
-    } catch (error) {
-        done(error, null);
-    }
-});
+// Removed serializeUser and deserializeUser since we're using stateless JWT
 
-export default passport
+export default passport;

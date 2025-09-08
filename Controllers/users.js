@@ -1,7 +1,13 @@
 import User from "../Models/User.js";
-import passport from "passport";
+import jwt from 'jsonwebtoken'; // Added for JWT
 
-export const register = async(req, res) => {
+const signToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_SECRET, {
+        expiresIn: '30d'
+    });
+};
+
+export const register = async (req, res) => {
     try {
         const { username, email, password, school } = req.body;
 
@@ -25,13 +31,17 @@ export const register = async(req, res) => {
             school
         });
 
+        // Generate JWT
+        const token = signToken(newUser._id);
+
         // Remove password from output
         newUser.password = undefined;
 
         res.status(201).json({
             success: true,
             message: 'User created successfully',
-            data: newUser
+            data: newUser,
+            token
         });
     } catch (error) {
         res.status(500).json({
@@ -39,61 +49,48 @@ export const register = async(req, res) => {
             message: error.message
         });
     }
-}
+};
 
-export const login = async(req, res, next) => {
-    passport.authenticate('local', (err, user, info) => {
+export const login = async (req, res, next) => {
+    // Use passport local with session: false
+    passport.authenticate('local', { session: false }, (err, user, info) => {
         if (err) return next(err);
         if (!user) {
             return res.status(401).json({
                 success: false,
-                message: info.message
+                message: info ? info.message : 'Authentication failed'
             });
         }
 
-        req.logIn(user, (err) => {
-            if (err) return next(err);
+        // Generate JWT
+        const token = signToken(user._id);
 
-            // Remove password from output
-            user.password = undefined;
+        // Remove password from output
+        user.password = undefined;
 
-            return res.json({
-                success: true,
-                message: 'Logged in successfully',
-                data: user
-            });
+        return res.json({
+            success: true,
+            message: 'Logged in successfully',
+            data: user,
+            token
         });
     })(req, res, next);
-}
+};
 
-export const logout = async(req, res) => {
-    req.logout((err) => {
-        if (err) {
-            return res.status(500).json({
-                success: false,
-                message: 'Error logging out'
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Logged out successfully'
-        });
+export const logout = async (req, res) => {
+    // With JWT, no server-side logout; client deletes token
+    res.json({
+        success: true,
+        message: 'Logged out successfully (remove token client-side)'
     });
-}
+};
 
-export const getCurrentUser = async(req, res) => {
-    if (req.user) {
-        const user = { ...req.user._doc };
-        user.password = undefined;
-        res.json({
-            success: true,
-            data: user
-        });
-    } else {
-        res.status(401).json({
-            success: false,
-            message: 'Not authenticated'
-        });
-    }
-}
+export const getCurrentUser = async (req, res) => {
+    // req.user is set by JWT middleware
+    const user = { ...req.user._doc };
+    user.password = undefined;
+    res.json({
+        success: true,
+        data: user
+    });
+};

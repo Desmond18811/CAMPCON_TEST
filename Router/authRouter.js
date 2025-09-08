@@ -1,6 +1,7 @@
 import express from 'express';
 import passport from 'passport';
-import {register, login, logout, getCurrentUser} from '../Controllers/users.js'
+import { register, login, logout, getCurrentUser } from '../Controllers/users.js';
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
@@ -10,24 +11,27 @@ router.post('/login', login);
 
 // Google OAuth routes
 router.get('/google',
-    passport.authenticate('google', { scope: ['profile', 'email'] })
+    passport.authenticate('google', { scope: ['profile', 'email'], session: false })
 );
 
 router.get('/google/callback',
     passport.authenticate('google', {
-        failureRedirect: process.env.CLIENT_URL + '/login',
-        session: true
+        failureRedirect: `${process.env.CLIENT_URL}/login`,
+        session: false
     }),
     (req, res) => {
-        // Successful authentication, redirect to client
-        res.redirect(process.env.CLIENT_URL);
+        // Generate JWT
+        const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET, { expiresIn: '90d' });
+
+        // Redirect to client with token in query (client extracts it)
+        res.redirect(`${process.env.CLIENT_URL}?token=${token}`);
     }
 );
 
-// Logout
+// Logout (JWT stateless)
 router.get('/logout', logout);
 
-// Get current user
-router.get('/me', getCurrentUser);
+// Get current user (protected with JWT)
+router.get('/me', passport.authenticate('jwt', { session: false }), getCurrentUser);
 
 export default router;

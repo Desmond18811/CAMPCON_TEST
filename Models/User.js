@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import bcrypt from 'bcryptjs'
+import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
     username: {
@@ -16,7 +16,8 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: function() {
             return !this.googleId; // Password not required if using Google OAuth
-        }
+        },
+        minlength: [8, 'Password must be at least 8 characters'] // Added basic validation
     },
     googleId: {
         type: String,
@@ -39,7 +40,7 @@ const userSchema = new mongoose.Schema({
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
-    if (!this.isModified('password')) return next();
+    if (!this.isModified('password') || !this.password) return next();
     this.password = await bcrypt.hash(this.password, 12);
     next();
 });
@@ -49,6 +50,6 @@ userSchema.methods.correctPassword = async function(candidatePassword, userPassw
     return await bcrypt.compare(candidatePassword, userPassword);
 };
 
-const User  = mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
 
 export default User;
