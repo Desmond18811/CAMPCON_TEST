@@ -1,5 +1,6 @@
 import User from "../Models/User.js";
-import jwt from 'jsonwebtoken'; // Added for JWT
+import jwt from 'jsonwebtoken';
+import passport from "passport"; // Added for JWT
 
 const signToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -19,7 +20,7 @@ export const register = async (req, res) => {
         if (existingUser) {
             return res.status(400).json({
                 success: false,
-                message: 'User already exists with this email or username'
+                message: '🔴 User already exists with this email or username'
             });
         }
 
@@ -39,7 +40,7 @@ export const register = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'User created successfully',
+            message: '🟢 User created successfully',
             data: newUser,
             token
         });
@@ -58,7 +59,7 @@ export const login = async (req, res, next) => {
         if (!user) {
             return res.status(401).json({
                 success: false,
-                message: info ? info.message : 'Authentication failed'
+                message: info ? info.message : '🔴 Authentication failed'
             });
         }
 
@@ -70,7 +71,7 @@ export const login = async (req, res, next) => {
 
         return res.json({
             success: true,
-            message: 'Logged in successfully',
+            message: '🟢 Logged in successfully',
             data: user,
             token
         });
@@ -81,7 +82,7 @@ export const logout = async (req, res) => {
     // With JWT, no server-side logout; client deletes token
     res.json({
         success: true,
-        message: 'Logged out successfully (remove token client-side)'
+        message: ' 🟢 Logged out successfully (remove token client-side)'
     });
 };
 
