@@ -5,7 +5,7 @@ import subscriptionRouter from "./Router/subscriptionRouter.js";
 import authRouter from "./Router/authRouter.js";
 import resourcesRouter from "./Router/resourcesRouter.js";
 import cors from 'cors';
-import passport from "./Database/passport.js"; // Adjust path to your Passport config file
+import passport from "./Database/passport.js";
 
 dotenv.config();
 

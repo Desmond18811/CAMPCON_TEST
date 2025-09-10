@@ -30,46 +30,41 @@ passport.use(
     })
 );
 
-// Google OAuth strategy
+
 passport.use(
     new GoogleStrategy(
         {
             clientID: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            callbackURL: '/api/auth/google/callback'
+            callbackURL: `${process.env.SERVER_URL}/api/auth/google/callback` // Use absolute URL
         },
         async (accessToken, refreshToken, profile, done) => {
             try {
-                // Check if user already exists with this googleId
                 let user = await User.findOne({ googleId: profile.id });
 
                 if (user) {
                     return done(null, user);
                 }
 
-                // Check if user exists with the same email but different auth method
                 user = await User.findOne({ email: profile.emails[0].value });
 
                 if (user) {
-                    // Link Google account to existing user
                     user.googleId = profile.id;
                     await user.save();
                     return done(null, user);
                 }
 
-                // Generate unique username
                 let username = profile.displayName.replace(/\s+/g, '').toLowerCase();
                 let existing = await User.findOne({ username });
                 if (existing) {
                     username += Math.random().toString(36).substring(2, 7);
                 }
 
-                // Create new user with Google auth
                 user = await User.create({
                     googleId: profile.id,
                     username,
                     email: profile.emails[0].value,
-                    school: 'Unknown' // Consider making this optional or handle post-creation
+                    school: 'Unknown'
                 });
 
                 return done(null, user);
@@ -79,6 +74,57 @@ passport.use(
         }
     )
 );
+
+
+// // Google OAuth strategy
+// passport.use(
+//     new GoogleStrategy(
+//         {
+//             clientID: process.env.GOOGLE_CLIENT_ID,
+//             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+//             callbackURL: '/api/auth/google/callback'
+//         },
+//         async (accessToken, refreshToken, profile, done) => {
+//             try {
+//                 // Check if user already exists with this googleId
+//                 let user = await User.findOne({ googleId: profile.id });
+//
+//                 if (user) {
+//                     return done(null, user);
+//                 }
+//
+//                 // Check if user exists with the same email but different auth method
+//                 user = await User.findOne({ email: profile.emails[0].value });
+//
+//                 if (user) {
+//                     // Link Google account to existing user
+//                     user.googleId = profile.id;
+//                     await user.save();
+//                     return done(null, user);
+//                 }
+//
+//                 // Generate unique username
+//                 let username = profile.displayName.replace(/\s+/g, '').toLowerCase();
+//                 let existing = await User.findOne({ username });
+//                 if (existing) {
+//                     username += Math.random().toString(36).substring(2, 7);
+//                 }
+//
+//                 // Create new user with Google auth
+//                 user = await User.create({
+//                     googleId: profile.id,
+//                     username,
+//                     email: profile.emails[0].value,
+//                     school: 'Unknown' // Consider making this optional or handle post-creation
+//                 });
+//
+//                 return done(null, user);
+//             } catch (error) {
+//                 return done(error, null);
+//             }
+//         }
+//     )
+// );
 
 // JWT strategy (added as per request)
 passport.use(
