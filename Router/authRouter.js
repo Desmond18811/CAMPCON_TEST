@@ -23,11 +23,10 @@ router.get('/google/callback',
         // Generate JWT
         const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET, { expiresIn: '90d' });
 
-        // Redirect to client with token in query (client extracts it)
-        res.redirect(`${process.env.CLIENT_URL}?token=${token}`);
+        // Redirect to client with token - use a proper page
+        res.redirect(`${process.env.CLIENT_URL}/auth-success?token=${token}`);
     }
 );
-
 // Logout (JWT stateless)
 router.get('/logout', logout);
 
