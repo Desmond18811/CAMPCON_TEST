@@ -87,11 +87,10 @@ export const getResource = async (req, res) => {
         });
     }
 };
-
 // Create a new resource
 export const createResource = async (req, res) => {
     try {
-        const { title, description, subject, gradeLevel, resourceType } = req.body;
+        const { title, description = '', subject, gradeLevel, resourceType, tags = [] } = req.body;
 
         // Handle uploaded files
         let fileUrl = '';
@@ -117,6 +116,7 @@ export const createResource = async (req, res) => {
             description,
             fileUrl,
             imageUrl,
+            tags,
             subject,
             gradeLevel,
             resourceType,

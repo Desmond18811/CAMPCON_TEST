@@ -7,15 +7,19 @@ const resourceSchema = new mongoose.Schema({
     },
     description: {
         type: String,
-        required: true
+        required: false
     },
     fileUrl: {
         type: String,
         required: true
     },
-    imageUrl: {  // New field for title image/thumbnail
+    imageUrl: {
         type: String,
         default: ''
+    },
+    tags: {
+        type: [String],
+        default: []
     },
     uploader: {
         type: mongoose.Schema.Types.ObjectId,
@@ -32,7 +36,7 @@ const resourceSchema = new mongoose.Schema({
     },
     resourceType: {
         type: String,
-        enum: ['notes', 'assignment', 'textbook', 'video', 'other'],
+        enum: ['notes', 'assignment', 'textbook', 'video', 'other', 'document'],
         required: true
     },
     averageRating: {
