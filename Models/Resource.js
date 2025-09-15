@@ -45,6 +45,19 @@ const resourceSchema = new mongoose.Schema({
     }
 });
 
+resourceSchema.add({
+    likeCount: {
+        type: Number,
+        default: 0
+    },
+    viewCount: {
+        type: Number,
+        default: 0
+    }
+})
+
+resourceSchema.index({title: 'text', description: 'text'})
+
 const Resource = mongoose.model('Resource', resourceSchema);
 
 export default Resource;

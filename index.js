@@ -6,6 +6,7 @@ import authRouter from "./Router/authRouter.js";
 import resourcesRouter from "./Router/resourcesRouter.js";
 import cors from 'cors';
 import passport from "./Database/passport.js";
+import notificationRouter from "./Router/notificationRouter.js";
 
 dotenv.config();
 
@@ -28,7 +29,7 @@ app.use(passport.initialize());
 app.use('/api/subscribe', subscriptionRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/resources', resourcesRouter);
-
+app.use('/api/notifications', notificationRouter);
 // Root endpoint
 app.get('/', (req, res) => {
     return res.json({
@@ -38,7 +39,7 @@ app.get('/', (req, res) => {
     });
 });
 
-// Connect to MongoDB and start server
+// Connect to MongoDB and start a server
 connectDb().then(() => {
     app.listen(PORT, () => {
         console.log(`🟢 Listening on port http://localhost:${PORT}`);

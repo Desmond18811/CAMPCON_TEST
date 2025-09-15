@@ -50,6 +50,17 @@ userSchema.methods.correctPassword = async function(candidatePassword, userPassw
     return await bcrypt.compare(candidatePassword, userPassword);
 };
 
+userSchema.add({
+    likedResource: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Resource'
+    }],
+    savedResource: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Resource'
+    }]
+})
+
 const User = mongoose.model('User', userSchema);
 
 export default User;
