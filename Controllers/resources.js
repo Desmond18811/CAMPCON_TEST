@@ -88,15 +88,35 @@ export const getResource = async (req, res) => {
     }
 };
 
-// Create new resource
+// Create a new resource
 export const createResource = async (req, res) => {
     try {
-        const { title, description, fileUrl, subject, gradeLevel, resourceType } = req.body;
+        const { title, description, subject, gradeLevel, resourceType } = req.body;
+
+        // Handle uploaded files
+        let fileUrl = '';
+        let imageUrl = '';
+        if (req.files) {
+            if (req.files['file'] && req.files['file'][0]) {
+                fileUrl = `/uploads/${req.files['file'][0].filename}`;
+            }
+            if (req.files['image'] && req.files['image'][0]) {
+                imageUrl = `/uploads/${req.files['image'][0].filename}`;
+            }
+        }
+
+        if (!fileUrl) {
+            return res.status(400).json({
+                success: false,
+                message: 'File upload is required'
+            });
+        }
 
         const resource = await Resource.create({
             title,
             description,
             fileUrl,
+            imageUrl,
             subject,
             gradeLevel,
             resourceType,

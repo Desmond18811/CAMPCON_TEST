@@ -7,15 +7,19 @@ import resourcesRouter from "./Router/resourcesRouter.js";
 import cors from 'cors';
 import passport from "./Database/passport.js";
 import notificationRouter from "./Router/notificationRouter.js";
+import path from 'path';  // New import for path handling
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT;
 
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 // Add CORS middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5174', 'http://localhost:5175', '\'http://localhost:5176\'', 'http://localhost:5177', 'http://localhost:5178'],
+    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:5178'],
     credentials: true
 }));
 

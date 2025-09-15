@@ -30,7 +30,7 @@ router.get('/google/callback',
 // Logout (JWT stateless)
 router.get('/logout', logout);
 
-// Get current user (protected with JWT)
+// Get the current user (protected with JWT)
 router.get('/me', passport.authenticate('jwt', { session: false }), getCurrentUser);
 
 export default router;

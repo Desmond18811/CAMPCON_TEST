@@ -13,6 +13,10 @@ const resourceSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    imageUrl: {  // New field for title image/thumbnail
+        type: String,
+        default: ''
+    },
     uploader: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
