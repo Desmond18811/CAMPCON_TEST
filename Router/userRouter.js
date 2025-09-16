@@ -1,5 +1,5 @@
 import express from 'express';
-import { getProfile, updateProfile } from '../Controllers/user.js';
+import { getProfile, updateProfile } from '../Controllers/users.js';
 import { isAuthenticated } from '../Middleware/Auth.js';
 import multer from 'multer';
 
