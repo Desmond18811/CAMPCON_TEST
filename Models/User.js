@@ -32,6 +32,19 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    gradeLevel: { // New field for "Change Level"
+        type: String,
+        required: false // Optional; make required if needed
+    },
+    bio: { // New field for "Bio"
+        type: String,
+        default: '',
+        maxlength: 500 // Optional limit to prevent overly long bios
+    },
+    profilePic: { // New field for profile picture URL
+        type: String,
+        default: '' // Can set a default placeholder URL if desired, e.g., '/default-avatar.png'
+    },
     createdAt: {
         type: Date,
         default: Date.now
@@ -51,15 +64,15 @@ userSchema.methods.correctPassword = async function(candidatePassword, userPassw
 };
 
 userSchema.add({
-    likedResource: [{
+    likedResources: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Resource'
     }],
-    savedResource: [{
+    savedResources: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Resource'
     }]
-})
+});
 
 const User = mongoose.model('User', userSchema);
 

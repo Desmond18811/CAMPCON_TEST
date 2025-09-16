@@ -7,7 +7,8 @@ import resourcesRouter from "./Router/resourcesRouter.js";
 import cors from 'cors';
 import passport from "./Database/passport.js";
 import notificationRouter from "./Router/notificationRouter.js";
-import path from 'path';  // New import for path handling
+import path from 'path';
+import userRouter from "./Router/userRouter.js";
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use('/api/subscribe', subscriptionRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/resources', resourcesRouter);
 app.use('/api/notifications', notificationRouter);
+app.use('/api/users', userRouter);
 // Root endpoint
 app.get('/', (req, res) => {
     return res.json({
