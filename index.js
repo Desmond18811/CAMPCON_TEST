@@ -4,11 +4,11 @@ import dotenv from 'dotenv';
 import subscriptionRouter from "./Router/subscriptionRouter.js";
 import authRouter from "./Router/authRouter.js";
 import resourcesRouter from "./Router/resourcesRouter.js";
+import userRouter from "./Router/userRouter.js"; // New import
 import cors from 'cors';
 import passport from "./Database/passport.js";
 import notificationRouter from "./Router/notificationRouter.js";
 import path from 'path';
-import userRouter from "./Router/userRouter.js";
 
 dotenv.config();
 
@@ -34,8 +34,8 @@ app.use(passport.initialize());
 app.use('/api/subscribe', subscriptionRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/resources', resourcesRouter);
+app.use('/api/users', userRouter); // New user routes
 app.use('/api/notifications', notificationRouter);
-app.use('/api/users', userRouter);
 // Root endpoint
 app.get('/', (req, res) => {
     return res.json({

@@ -96,56 +96,61 @@ export const getCurrentUser = async (req, res) => {
     });
 };
 
+// Get current user profile
 export const getProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user._id).select('-password -googleId');
-        if(!user) {
+        const user = await User.findById(req.user._id).select('-password -googleId'); // Exclude sensitive fields
+        if (!user) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
-            })
+            });
         }
-        res.status(200).json({
+        res.json({
             success: true,
             data: user
-        })
-    }catch (error) {
-        return res.status(500).json({
+        });
+    } catch (error) {
+        res.status(500).json({
             success: false,
             message: error.message
-        })
+        });
     }
-}
+};
+
+// Update user profile (supports partial updates and profile pic upload)
 export const updateProfile = async (req, res) => {
     try {
-        const updates = req.body;  //fileds like our username, grade level etc
+        const updates = req.body; // Fields like username, school, gradeLevel, bio
 
-        //Handle profile pictures uploads if user provides it
-        if(req.file){
+        // Handle profile picture upload if provided
+        if (req.file) {
             updates.profilePic = `/uploads/${req.file.filename}`;
         }
-        //update only provided fields
-        const updateUser = await User.findByIdAndUpdate(
+
+        // Update only provided fields
+        const updatedUser = await User.findByIdAndUpdate(
             req.user._id,
             updates,
-            {new: true, runValidators: true}
+            { new: true, runValidators: true }
         ).select('-password -googleId');
 
-        if(!updateUser) {
+        if (!updatedUser) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
-            })
+            });
         }
-        res.status(200).json({
-            success: true,
-            data: updateUser
-        })
 
-    }catch (error) {
-        return res.status(500).json({
+        res.json({
+            success: true,
+            message: 'Profile updated successfully',
+            data: updatedUser
+        });
+    } catch (error) {
+        res.status(500).json({
             success: false,
             message: error.message
-        })
+        });
     }
-}
+};
