@@ -1,5 +1,6 @@
 import User from "../Models/User.js";
 import jwt from 'jsonwebtoken';
+import passport from "passport";
 
 const signToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
