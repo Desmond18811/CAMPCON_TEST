@@ -1,5 +1,5 @@
 import express from 'express';
-import { isAuthenticated } from '../Middleware/Auth.js';
+import { isAuthenticated } from '../Middleware/authMiddleware.js';
 import {
     getAllResources,
     getResource,

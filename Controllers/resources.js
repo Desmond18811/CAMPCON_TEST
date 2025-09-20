@@ -92,7 +92,7 @@ export const getResource = async (req, res) => {
 // Create a new resource
 export const createResource = async (req, res) => {
     try {
-        const { title, description = '', subject, gradeLevel, resourceType, tags = [], taggedUsers = [], username, profileColor } = req.body;
+        const { title, description = '', subject, gradeLevel, resourceType, tags = [], username, profileColor } = req.body;
 
         let fileUrl = '';
         let imageUrl = '';
@@ -116,12 +116,11 @@ export const createResource = async (req, res) => {
             });
         }
 
-        // Validate tagged users
-        const validTaggedUsers = [];
-        for (const userId of taggedUsers) {
-            const user = await User.findById(userId);
-            if (user) validTaggedUsers.push(userId);
-        }
+        // Parse @username tags from description
+        const tagMatches = description.match(/@(\w+)/g) || [];
+        const taggedUsernames = tagMatches.map(tag => tag.slice(1).toLowerCase());
+        const taggedUsers = await User.find({ username: { $in: taggedUsernames } }).select('_id');
+        const validTaggedUsers = taggedUsers.map(user => user._id);
 
         const resource = await Resource.create({
             title,
@@ -154,7 +153,8 @@ export const createResource = async (req, res) => {
         const populatedResource = await Resource.findById(resource._id)
             .populate('uploader', 'username profilePic profileColor')
             .populate('taggedUsers', 'username profilePic profileColor');
-
+        console.log('Request body:', req.body);
+        console.log('Files:', req.files);
         res.status(201).json({
             success: true,
             message: 'Resource created successfully',
@@ -171,7 +171,7 @@ export const createResource = async (req, res) => {
 // Update resource
 export const updateResource = async (req, res) => {
     try {
-        const { taggedUsers = [] } = req.body;
+        const { description = '' } = req.body;
         const resource = await Resource.findById(req.params.id);
 
         if (!resource) {
@@ -188,12 +188,11 @@ export const updateResource = async (req, res) => {
             });
         }
 
-        // Validate tagged users
-        const validTaggedUsers = [];
-        for (const userId of taggedUsers) {
-            const user = await User.findById(userId);
-            if (user) validTaggedUsers.push(userId);
-        }
+        // Parse @username tags from description
+        const tagMatches = description.match(/@(\w+)/g) || [];
+        const taggedUsernames = tagMatches.map(tag => tag.slice(1).toLowerCase());
+        const taggedUsers = await User.find({ username: { $in: taggedUsernames } }).select('_id');
+        const validTaggedUsers = taggedUsers.map(user => user._id);
 
         // Notify newly tagged users
         const existingTaggedUsers = resource.taggedUsers.map(id => id.toString());
@@ -295,12 +294,11 @@ export const rateResource = async (req, res) => {
             });
         }
 
-        // Validate tagged users
-        const validTaggedUsers = [];
-        for (const userId of taggedUsers) {
-            const user = await User.findById(userId);
-            if (user) validTaggedUsers.push(userId);
-        }
+        // Parse @username tags from comment
+        const tagMatches = comment.match(/@(\w+)/g) || [];
+        const taggedUsernames = tagMatches.map(tag => tag.slice(1).toLowerCase());
+        const taggedUsers = await User.find({ username: { $in: taggedUsernames } }).select('_id');
+        const validTaggedUsers = taggedUsers.map(user => user._id);
 
         const newRating = await Rating.create({
             user: userId,
