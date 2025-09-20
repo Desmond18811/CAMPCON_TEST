@@ -40,7 +40,7 @@ export const getAllResources = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Error in getAllResources:', error);
+        console.error('Error in getAllResources:', { message: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: `Failed to fetch resources: ${error.message}`
@@ -83,7 +83,7 @@ export const getResource = async (req, res) => {
             data: resource
         });
     } catch (error) {
-        console.error('Error in getResource:', error);
+        console.error('Error in getResource:', { message: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: `Failed to fetch resource: ${error.message}`
@@ -94,8 +94,10 @@ export const getResource = async (req, res) => {
 // Create a new resource
 export const createResource = async (req, res) => {
     try {
+        console.log('Starting createResource');
         // Validate req.user
         if (!req.user || !req.user._id) {
+            console.log('Authentication failed: No user data');
             return res.status(401).json({
                 success: false,
                 message: 'Unauthorized: No user data found'
@@ -103,13 +105,13 @@ export const createResource = async (req, res) => {
         }
 
         const { title, description = '', subject, gradeLevel, resourceType, tags = [], username, profileColor } = req.body;
-
         console.log('Request body:', req.body);
         console.log('Files:', req.files);
-        console.log('User:', req.user);
+        console.log('User:', { id: req.user._id, username: req.user.username });
 
         // Validate required fields
         if (!title || !subject || !gradeLevel || !resourceType) {
+            console.log('Missing required fields:', { title, subject, gradeLevel, resourceType });
             return res.status(400).json({
                 success: false,
                 message: 'Missing required fields: title, subject, gradeLevel, or resourceType'
@@ -132,6 +134,7 @@ export const createResource = async (req, res) => {
         }
 
         if (!fileUrl) {
+            console.log('No file uploaded');
             return res.status(400).json({
                 success: false,
                 message: 'File upload is required'
@@ -139,19 +142,37 @@ export const createResource = async (req, res) => {
         }
 
         // Parse @username tags from description
+        console.log('Parsing tags from description:', description);
         const tagMatches = description.match(/@(\w+)/g) || [];
         const taggedUsernames = tagMatches.map(tag => tag.slice(1).toLowerCase());
+        console.log('Tagged usernames:', taggedUsernames);
         const foundUsers = await User.find({ username: { $in: taggedUsernames } }).select('_id username');
+        console.log('Found users:', foundUsers);
         const validTaggedUsers = foundUsers.map(user => user._id);
 
         // Validate username matches req.user
         if (username && username.toLowerCase() !== req.user.username.toLowerCase()) {
+            console.log('Username mismatch:', { provided: username, user: req.user.username });
             return res.status(400).json({
                 success: false,
                 message: 'Provided username does not match authenticated user'
             });
         }
 
+        console.log('Creating resource with data:', {
+            title,
+            description,
+            fileUrl,
+            imageUrl,
+            tags,
+            taggedUsers: validTaggedUsers,
+            uploader: req.user._id,
+            profilePic,
+            profileColor: profileColor || '#cc002e',
+            subject,
+            gradeLevel,
+            resourceType
+        });
         const resource = await Resource.create({
             title,
             description,
@@ -166,10 +187,12 @@ export const createResource = async (req, res) => {
             gradeLevel,
             resourceType
         });
+        console.log('Resource created:', resource._id);
 
         // Notify tagged users
         for (const taggedUserId of validTaggedUsers) {
             if (taggedUserId.toString() !== req.user._id.toString()) {
+                console.log('Creating notification for user:', taggedUserId);
                 await Notification.create({
                     recipient: taggedUserId,
                     type: 'tag',
@@ -180,6 +203,7 @@ export const createResource = async (req, res) => {
             }
         }
 
+        console.log('Populating resource:', resource._id);
         const populatedResource = await Resource.findById(resource._id)
             .populate('uploader', 'username profilePic profileColor')
             .populate('taggedUsers', 'username profilePic profileColor');
@@ -190,7 +214,12 @@ export const createResource = async (req, res) => {
             data: populatedResource
         });
     } catch (error) {
-        console.error('Error in createResource:', error);
+        console.error('Error in createResource:', {
+            message: error.message,
+            stack: error.stack,
+            body: req.body,
+            files: req.files
+        });
         res.status(500).json({
             success: false,
             message: `Failed to create resource: ${error.message}`
@@ -252,7 +281,7 @@ export const updateResource = async (req, res) => {
             data: updatedResource
         });
     } catch (error) {
-        console.error('Error in updateResource:', error);
+        console.error('Error in updateResource:', { message: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: `Failed to update resource: ${error.message}`
@@ -291,7 +320,7 @@ export const deleteResource = async (req, res) => {
             message: 'Resource deleted successfully'
         });
     } catch (error) {
-        console.error('Error in deleteResource:', error);
+        console.error('Error in deleteResource:', { message: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: `Failed to delete resource: ${error.message}`
@@ -383,7 +412,7 @@ export const rateResource = async (req, res) => {
             data: populatedRating
         });
     } catch (error) {
-        console.error('Error in rateResource:', error);
+        console.error('Error in rateResource:', { message: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: `Failed to rate resource: ${error.message}`
@@ -425,7 +454,7 @@ export const likeResource = async (req, res) => {
             return res.json({ success: true, message: 'Resource liked' });
         }
     } catch (error) {
-        console.error('Error in likeResource:', error);
+        console.error('Error in likeResource:', { message: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: `Failed to like resource: ${error.message}`
@@ -456,7 +485,7 @@ export const saveResource = async (req, res) => {
             return res.json({ success: true, message: 'Resource saved' });
         }
     } catch (error) {
-        console.error('Error in saveResource:', error);
+        console.error('Error in saveResource:', { message: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: `Failed to save resource: ${error.message}`
@@ -491,7 +520,7 @@ export const getLikedResources = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Error in getLikedResources:', error);
+        console.error('Error in getLikedResources:', { message: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: `Failed to fetch liked resources: ${error.message}`
@@ -526,7 +555,7 @@ export const getSavedResources = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Error in getSavedResources:', error);
+        console.error('Error in getSavedResources:', { message: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: `Failed to fetch saved resources: ${error.message}`
@@ -555,7 +584,7 @@ export const getResourceViews = async (req, res) => {
             data: views
         });
     } catch (error) {
-        console.error('Error in getResourceViews:', error);
+        console.error('Error in getResourceViews:', { message: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: `Failed to fetch resource views: ${error.message}`
@@ -610,7 +639,7 @@ export const getRecommendedResources = async (req, res) => {
             pagination: { currentPage: page, totalPages: Math.ceil(total / limit), totalResources: total }
         });
     } catch (error) {
-        console.error('Error in getRecommendedResources:', error);
+        console.error('Error in getRecommendedResources:', { message: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: `Failed to fetch recommended resources: ${error.message}`
@@ -631,7 +660,7 @@ export const getResourceRatings = async (req, res) => {
             data: ratings
         });
     } catch (error) {
-        console.error('Error in getResourceRatings:', error);
+        console.error('Error in getResourceRatings:', { message: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: `Failed to fetch ratings: ${error.message}`

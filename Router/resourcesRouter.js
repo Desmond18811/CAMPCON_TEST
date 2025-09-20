@@ -1,4 +1,6 @@
 import express from 'express';
+import { isAuthenticated } from '../Middleware/Auth.js';
+import uploadMiddleware from '../Middleware/multerConfig.js';
 import {
     getAllResources,
     getResource,
@@ -14,19 +16,13 @@ import {
     getRecommendedResources,
     getResourceRatings
 } from '../Controllers/resources.js';
-import upload from '../Middleware/multerConfig.js';
-import {isAuthenticated} from "../Middleware/Auth.js";
 
 const router = express.Router();
 
 router.get('/', getAllResources);
 router.get('/:id', getResource);
-router.post('/', isAuthenticated, upload.fields([
-    { name: 'file', maxCount: 1 },
-    { name: 'image', maxCount: 1 },
-    { name: 'profilePic', maxCount: 1 }
-]), createResource);
-router.put('/:id', isAuthenticated, updateResource);
+router.post('/', isAuthenticated, uploadMiddleware, createResource);
+router.put('/:id', isAuthenticated, uploadMiddleware, updateResource);
 router.delete('/:id', isAuthenticated, deleteResource);
 router.post('/:id/rate', isAuthenticated, rateResource);
 router.post('/:id/like', isAuthenticated, likeResource);

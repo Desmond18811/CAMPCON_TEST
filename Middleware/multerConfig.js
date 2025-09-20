@@ -9,7 +9,8 @@ const __dirname = path.dirname(__filename);
 // Configure storage
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, '../Uploads'));
+        const uploadPath = path.join(__dirname, '../Uploads');
+        cb(null, uploadPath);
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -26,7 +27,7 @@ const fileFilter = (req, file, cb) => {
     if (extname && mimetype) {
         return cb(null, true);
     } else {
-        cb(new Error('Only images (jpeg, jpg, png) and documents (pdf, doc, docx) are allowed'));
+        cb(new Error('Only images (jpeg, jpg, png) and documents (pdf, doc, docx) are allowed'), false);
     }
 };
 
@@ -37,6 +38,28 @@ const upload = multer({
         fileSize: 5 * 1024 * 1024 // 5MB limit
     },
     fileFilter: fileFilter
-});
+}).fields([
+    { name: 'file', maxCount: 1 },
+    { name: 'image', maxCount: 1 },
+    { name: 'profilePic', maxCount: 1 }
+]);
 
-export default upload;
+// Multer middleware wrapper to handle errors
+const uploadMiddleware = (req, res, next) => {
+    upload(req, res, (err) => {
+        if (err instanceof multer.MulterError) {
+            return res.status(400).json({
+                success: false,
+                message: `Multer error: ${err.message}`
+            });
+        } else if (err) {
+            return res.status(400).json({
+                success: false,
+                message: `File upload error: ${err.message}`
+            });
+        }
+        next();
+    });
+};
+
+export default uploadMiddleware;
