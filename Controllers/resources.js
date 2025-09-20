@@ -43,7 +43,7 @@ export const getAllResources = async (req, res) => {
         console.error('Error in getAllResources:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: `Failed to fetch resources: ${error.message}`
         });
     }
 };
@@ -86,7 +86,7 @@ export const getResource = async (req, res) => {
         console.error('Error in getResource:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: `Failed to fetch resource: ${error.message}`
         });
     }
 };
@@ -94,10 +94,27 @@ export const getResource = async (req, res) => {
 // Create a new resource
 export const createResource = async (req, res) => {
     try {
+        // Validate req.user
+        if (!req.user || !req.user._id) {
+            return res.status(401).json({
+                success: false,
+                message: 'Unauthorized: No user data found'
+            });
+        }
+
         const { title, description = '', subject, gradeLevel, resourceType, tags = [], username, profileColor } = req.body;
 
         console.log('Request body:', req.body);
         console.log('Files:', req.files);
+        console.log('User:', req.user);
+
+        // Validate required fields
+        if (!title || !subject || !gradeLevel || !resourceType) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields: title, subject, gradeLevel, or resourceType'
+            });
+        }
 
         let fileUrl = '';
         let imageUrl = '';
@@ -124,8 +141,16 @@ export const createResource = async (req, res) => {
         // Parse @username tags from description
         const tagMatches = description.match(/@(\w+)/g) || [];
         const taggedUsernames = tagMatches.map(tag => tag.slice(1).toLowerCase());
-        const foundUsers = await User.find({ username: { $in: taggedUsernames } }).select('_id');
+        const foundUsers = await User.find({ username: { $in: taggedUsernames } }).select('_id username');
         const validTaggedUsers = foundUsers.map(user => user._id);
+
+        // Validate username matches req.user
+        if (username && username.toLowerCase() !== req.user.username.toLowerCase()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Provided username does not match authenticated user'
+            });
+        }
 
         const resource = await Resource.create({
             title,
@@ -168,7 +193,7 @@ export const createResource = async (req, res) => {
         console.error('Error in createResource:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: `Failed to create resource: ${error.message}`
         });
     }
 };
@@ -230,7 +255,7 @@ export const updateResource = async (req, res) => {
         console.error('Error in updateResource:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: `Failed to update resource: ${error.message}`
         });
     }
 };
@@ -269,7 +294,7 @@ export const deleteResource = async (req, res) => {
         console.error('Error in deleteResource:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: `Failed to delete resource: ${error.message}`
         });
     }
 };
@@ -361,7 +386,7 @@ export const rateResource = async (req, res) => {
         console.error('Error in rateResource:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: `Failed to rate resource: ${error.message}`
         });
     }
 };
@@ -401,7 +426,10 @@ export const likeResource = async (req, res) => {
         }
     } catch (error) {
         console.error('Error in likeResource:', error);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({
+            success: false,
+            message: `Failed to like resource: ${error.message}`
+        });
     }
 };
 
@@ -429,7 +457,10 @@ export const saveResource = async (req, res) => {
         }
     } catch (error) {
         console.error('Error in saveResource:', error);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({
+            success: false,
+            message: `Failed to save resource: ${error.message}`
+        });
     }
 };
 
@@ -452,7 +483,7 @@ export const getLikedResources = async (req, res) => {
 
         res.json({
             success: true,
-            data: likes.map(l => l.resource).filter(r => r), // Filter out null resources
+            data: likes.map(l => l.resource).filter(r => r),
             pagination: {
                 currentPage: page,
                 totalPages: Math.ceil(total / limit),
@@ -461,7 +492,10 @@ export const getLikedResources = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in getLikedResources:', error);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({
+            success: false,
+            message: `Failed to fetch liked resources: ${error.message}`
+        });
     }
 };
 
@@ -484,7 +518,7 @@ export const getSavedResources = async (req, res) => {
 
         res.json({
             success: true,
-            data: saves.map(s => s.resource).filter(r => r), // Filter out null resources
+            data: saves.map(s => s.resource).filter(r => r),
             pagination: {
                 currentPage: page,
                 totalPages: Math.ceil(total / limit),
@@ -493,7 +527,10 @@ export const getSavedResources = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in getSavedResources:', error);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({
+            success: false,
+            message: `Failed to fetch saved resources: ${error.message}`
+        });
     }
 };
 
@@ -519,7 +556,10 @@ export const getResourceViews = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in getResourceViews:', error);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({
+            success: false,
+            message: `Failed to fetch resource views: ${error.message}`
+        });
     }
 };
 
@@ -571,7 +611,10 @@ export const getRecommendedResources = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in getRecommendedResources:', error);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({
+            success: false,
+            message: `Failed to fetch recommended resources: ${error.message}`
+        });
     }
 };
 
@@ -591,7 +634,7 @@ export const getResourceRatings = async (req, res) => {
         console.error('Error in getResourceRatings:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: `Failed to fetch ratings: ${error.message}`
         });
     }
 };
