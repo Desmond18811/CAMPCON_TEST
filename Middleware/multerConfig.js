@@ -20,14 +20,14 @@ const storage = multer.diskStorage({
 
 // File filter to allow specific file types
 const fileFilter = (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|pdf|doc|docx/;
+    const allowedTypes = /jpeg|jpg|png|gif|webp|bmp|pdf|doc|docx|txt|rtf|odt|ppt|pptx|xls|xlsx|csv|mp4|mov|avi|mp3|wav|zip|rar/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
 
     if (extname && mimetype) {
         return cb(null, true);
     } else {
-        cb(new Error('Only images (jpeg, jpg, png) and documents (pdf, doc, docx) are allowed'), false);
+        cb(new Error('Only images (jpeg, jpg, png, gif, webp, bmp), documents (pdf, doc, docx, txt, rtf, odt), presentations (ppt, pptx), spreadsheets (xls, xlsx, csv), videos (mp4, mov, avi), audio (mp3, wav), and archives (zip, rar) are allowed'), false);
     }
 };
 
@@ -35,7 +35,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB limit
+        fileSize: 10 * 1024 * 1024 // 10MB limit
     },
     fileFilter: fileFilter
 }).fields([
