@@ -5,6 +5,7 @@ import User from "../Models/User.js";
 import Save from "../Models/Save.js";
 import View from "../Models/View.js";
 import Notification from "../Models/Notification.js";
+import path from 'path';
 
 // Get all resources with optional filtering
 export const getAllResources = async (req, res) => {
@@ -30,9 +31,15 @@ export const getAllResources = async (req, res) => {
 
         const total = await Resource.countDocuments(filter);
 
+        // Add fileType to each resource
+        const resourcesWithFileType = resources.map(resource => ({
+            ...resource._doc,
+            fileType: resource.fileUrl ? path.extname(resource.fileUrl).toLowerCase() : ''
+        }));
+
         res.json({
             success: true,
-            data: resources,
+            data: resourcesWithFileType,
             pagination: {
                 currentPage: page,
                 totalPages: Math.ceil(total / limit),
@@ -78,9 +85,16 @@ export const getResource = async (req, res) => {
                 await existingView.save();
             }
         }
+
+        // Add fileType to resource
+        const resourceWithFileType = {
+            ...resource._doc,
+            fileType: resource.fileUrl ? path.extname(resource.fileUrl).toLowerCase() : ''
+        };
+
         res.json({
             success: true,
-            data: resource
+            data: resourceWithFileType
         });
     } catch (error) {
         console.error('Error in getResource:', { message: error.message, stack: error.stack });
@@ -121,9 +135,11 @@ export const createResource = async (req, res) => {
         let fileUrl = '';
         let imageUrl = '';
         let profilePic = '';
+        let fileType = '';
         if (req.files) {
             if (req.files['file'] && req.files['file'][0]) {
                 fileUrl = `/Uploads/${req.files['file'][0].filename}`;
+                fileType = path.extname(req.files['file'][0].originalname).toLowerCase();
             }
             if (req.files['image'] && req.files['image'][0]) {
                 imageUrl = `/Uploads/${req.files['image'][0].filename}`;
@@ -164,6 +180,7 @@ export const createResource = async (req, res) => {
             description,
             fileUrl,
             imageUrl,
+            fileType,
             tags,
             taggedUsers: validTaggedUsers,
             uploader: req.user._id,
@@ -178,6 +195,7 @@ export const createResource = async (req, res) => {
             description,
             fileUrl,
             imageUrl,
+            fileType,
             tags,
             taggedUsers: validTaggedUsers,
             uploader: req.user._id,
@@ -211,7 +229,7 @@ export const createResource = async (req, res) => {
         res.status(201).json({
             success: true,
             message: 'Resource created successfully',
-            data: populatedResource
+            data: { ...populatedResource._doc, fileType }
         });
     } catch (error) {
         console.error('Error in createResource:', {
@@ -268,9 +286,23 @@ export const updateResource = async (req, res) => {
             }
         }
 
+        let updateData = { title, description, subject, gradeLevel, resourceType, tags, profileColor, profilePic, taggedUsers: validTaggedUsers };
+        if (req.files) {
+            if (req.files['file'] && req.files['file'][0]) {
+                updateData.fileUrl = `/Uploads/${req.files['file'][0].filename}`;
+                updateData.fileType = path.extname(req.files['file'][0].originalname).toLowerCase();
+            }
+            if (req.files['image'] && req.files['image'][0]) {
+                updateData.imageUrl = `/Uploads/${req.files['image'][0].filename}`;
+            }
+            if (req.files['profilePic'] && req.files['profilePic'][0]) {
+                updateData.profilePic = `/Uploads/${req.files['profilePic'][0].filename}`;
+            }
+        }
+
         const updatedResource = await Resource.findByIdAndUpdate(
             req.params.id,
-            { title, description, subject, gradeLevel, resourceType, tags, profileColor, profilePic, taggedUsers: validTaggedUsers },
+            updateData,
             { new: true, runValidators: true }
         ).populate('uploader', 'username profilePic profileColor')
             .populate('taggedUsers', 'username profilePic profileColor');

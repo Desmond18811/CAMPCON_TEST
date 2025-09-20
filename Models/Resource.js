@@ -3,8 +3,7 @@ import mongoose from 'mongoose';
 const resourceSchema = new mongoose.Schema({
     title: {
         type: String,
-        required: [true, 'Title is required'],
-        trim: true
+        required: true
     },
     description: {
         type: String,
@@ -12,16 +11,18 @@ const resourceSchema = new mongoose.Schema({
     },
     fileUrl: {
         type: String,
-        required: [true, 'File URL is required']
+        required: true
     },
     imageUrl: {
+        type: String
+    },
+    fileType: {
         type: String,
         default: ''
     },
-    tags: {
-        type: [String],
-        default: []
-    },
+    tags: [{
+        type: String
+    }],
     taggedUsers: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
@@ -29,11 +30,10 @@ const resourceSchema = new mongoose.Schema({
     uploader: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: [true, 'Uploader is required']
+        required: true
     },
     profilePic: {
-        type: String,
-        default: ''
+        type: String
     },
     profileColor: {
         type: String,
@@ -41,16 +41,15 @@ const resourceSchema = new mongoose.Schema({
     },
     subject: {
         type: String,
-        required: [true, 'Subject is required']
+        required: true
     },
     gradeLevel: {
         type: String,
-        required: [true, 'Grade level is required']
+        required: true
     },
     resourceType: {
         type: String,
-        enum: ['notes', 'assignment', 'textbook', 'video', 'document', 'other'],
-        required: [true, 'Resource type is required']
+        required: true
     },
     averageRating: {
         type: Number,
@@ -74,7 +73,7 @@ const resourceSchema = new mongoose.Schema({
     }
 });
 
-resourceSchema.index({ title: 'text', description: 'text' });
+resourceSchema.index({ title: 'text', description: 'text', tags: 'text' });
 
 const Resource = mongoose.model('Resource', resourceSchema);
 
