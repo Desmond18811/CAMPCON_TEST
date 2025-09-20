@@ -40,6 +40,7 @@ export const getAllResources = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('Error in getAllResources:', error);
         res.status(500).json({
             success: false,
             message: error.message
@@ -82,6 +83,7 @@ export const getResource = async (req, res) => {
             data: resource
         });
     } catch (error) {
+        console.error('Error in getResource:', error);
         res.status(500).json({
             success: false,
             message: error.message
@@ -94,18 +96,21 @@ export const createResource = async (req, res) => {
     try {
         const { title, description = '', subject, gradeLevel, resourceType, tags = [], username, profileColor } = req.body;
 
+        console.log('Request body:', req.body);
+        console.log('Files:', req.files);
+
         let fileUrl = '';
         let imageUrl = '';
         let profilePic = '';
         if (req.files) {
             if (req.files['file'] && req.files['file'][0]) {
-                fileUrl = `/uploads/${req.files['file'][0].filename}`;
+                fileUrl = `/Uploads/${req.files['file'][0].filename}`;
             }
             if (req.files['image'] && req.files['image'][0]) {
-                imageUrl = `/uploads/${req.files['image'][0].filename}`;
+                imageUrl = `/Uploads/${req.files['image'][0].filename}`;
             }
             if (req.files['profilePic'] && req.files['profilePic'][0]) {
-                profilePic = `/uploads/${req.files['profilePic'][0].filename}`;
+                profilePic = `/Uploads/${req.files['profilePic'][0].filename}`;
             }
         }
 
@@ -119,8 +124,8 @@ export const createResource = async (req, res) => {
         // Parse @username tags from description
         const tagMatches = description.match(/@(\w+)/g) || [];
         const taggedUsernames = tagMatches.map(tag => tag.slice(1).toLowerCase());
-        const taggedUsers = await User.find({ username: { $in: taggedUsernames } }).select('_id');
-        const validTaggedUsers = taggedUsers.map(user => user._id);
+        const foundUsers = await User.find({ username: { $in: taggedUsernames } }).select('_id');
+        const validTaggedUsers = foundUsers.map(user => user._id);
 
         const resource = await Resource.create({
             title,
@@ -153,14 +158,14 @@ export const createResource = async (req, res) => {
         const populatedResource = await Resource.findById(resource._id)
             .populate('uploader', 'username profilePic profileColor')
             .populate('taggedUsers', 'username profilePic profileColor');
-        console.log('Request body:', req.body);
-        console.log('Files:', req.files);
+
         res.status(201).json({
             success: true,
             message: 'Resource created successfully',
             data: populatedResource
         });
     } catch (error) {
+        console.error('Error in createResource:', error);
         res.status(500).json({
             success: false,
             message: error.message
@@ -171,7 +176,7 @@ export const createResource = async (req, res) => {
 // Update resource
 export const updateResource = async (req, res) => {
     try {
-        const { description = '' } = req.body;
+        const { description = '', title, subject, gradeLevel, resourceType, tags, profileColor, profilePic } = req.body;
         const resource = await Resource.findById(req.params.id);
 
         if (!resource) {
@@ -191,8 +196,8 @@ export const updateResource = async (req, res) => {
         // Parse @username tags from description
         const tagMatches = description.match(/@(\w+)/g) || [];
         const taggedUsernames = tagMatches.map(tag => tag.slice(1).toLowerCase());
-        const taggedUsers = await User.find({ username: { $in: taggedUsernames } }).select('_id');
-        const validTaggedUsers = taggedUsers.map(user => user._id);
+        const foundUsers = await User.find({ username: { $in: taggedUsernames } }).select('_id');
+        const validTaggedUsers = foundUsers.map(user => user._id);
 
         // Notify newly tagged users
         const existingTaggedUsers = resource.taggedUsers.map(id => id.toString());
@@ -211,7 +216,7 @@ export const updateResource = async (req, res) => {
 
         const updatedResource = await Resource.findByIdAndUpdate(
             req.params.id,
-            { ...req.body, taggedUsers: validTaggedUsers },
+            { title, description, subject, gradeLevel, resourceType, tags, profileColor, profilePic, taggedUsers: validTaggedUsers },
             { new: true, runValidators: true }
         ).populate('uploader', 'username profilePic profileColor')
             .populate('taggedUsers', 'username profilePic profileColor');
@@ -222,6 +227,7 @@ export const updateResource = async (req, res) => {
             data: updatedResource
         });
     } catch (error) {
+        console.error('Error in updateResource:', error);
         res.status(500).json({
             success: false,
             message: error.message
@@ -260,6 +266,7 @@ export const deleteResource = async (req, res) => {
             message: 'Resource deleted successfully'
         });
     } catch (error) {
+        console.error('Error in deleteResource:', error);
         res.status(500).json({
             success: false,
             message: error.message
@@ -270,7 +277,7 @@ export const deleteResource = async (req, res) => {
 // Rate a resource
 export const rateResource = async (req, res) => {
     try {
-        const { rating, comment, taggedUsers = [] } = req.body;
+        const { rating, comment } = req.body;
         const resourceId = req.params.id;
         const userId = req.user._id;
 
@@ -297,8 +304,8 @@ export const rateResource = async (req, res) => {
         // Parse @username tags from comment
         const tagMatches = comment.match(/@(\w+)/g) || [];
         const taggedUsernames = tagMatches.map(tag => tag.slice(1).toLowerCase());
-        const taggedUsers = await User.find({ username: { $in: taggedUsernames } }).select('_id');
-        const validTaggedUsers = taggedUsers.map(user => user._id);
+        const foundUsers = await User.find({ username: { $in: taggedUsernames } }).select('_id');
+        const validTaggedUsers = foundUsers.map(user => user._id);
 
         const newRating = await Rating.create({
             user: userId,
@@ -334,7 +341,7 @@ export const rateResource = async (req, res) => {
 
         const ratings = await Rating.find({ resource: resourceId });
         const totalRating = ratings.reduce((sum, r) => sum + r.rating, 0);
-        const averageRating = totalRating / ratings.length;
+        const averageRating = totalRating / ratings.length || 0;
 
         await Resource.findByIdAndUpdate(resourceId, {
             averageRating,
@@ -351,6 +358,7 @@ export const rateResource = async (req, res) => {
             data: populatedRating
         });
     } catch (error) {
+        console.error('Error in rateResource:', error);
         res.status(500).json({
             success: false,
             message: error.message
@@ -392,6 +400,7 @@ export const likeResource = async (req, res) => {
             return res.json({ success: true, message: 'Resource liked' });
         }
     } catch (error) {
+        console.error('Error in likeResource:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -419,6 +428,7 @@ export const saveResource = async (req, res) => {
             return res.json({ success: true, message: 'Resource saved' });
         }
     } catch (error) {
+        console.error('Error in saveResource:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -442,7 +452,7 @@ export const getLikedResources = async (req, res) => {
 
         res.json({
             success: true,
-            data: likes.map(l => l.resource),
+            data: likes.map(l => l.resource).filter(r => r), // Filter out null resources
             pagination: {
                 currentPage: page,
                 totalPages: Math.ceil(total / limit),
@@ -450,6 +460,7 @@ export const getLikedResources = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('Error in getLikedResources:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -473,7 +484,7 @@ export const getSavedResources = async (req, res) => {
 
         res.json({
             success: true,
-            data: saves.map(s => s.resource),
+            data: saves.map(s => s.resource).filter(r => r), // Filter out null resources
             pagination: {
                 currentPage: page,
                 totalPages: Math.ceil(total / limit),
@@ -481,6 +492,7 @@ export const getSavedResources = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('Error in getSavedResources:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -506,6 +518,7 @@ export const getResourceViews = async (req, res) => {
             data: views
         });
     } catch (error) {
+        console.error('Error in getResourceViews:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -517,9 +530,9 @@ export const getRecommendedResources = async (req, res) => {
         const { page = 1, limit = 10 } = req.query;
 
         const liked = await Like.find({ user: userId }).populate('resource');
-        const subjects = [...new Set(liked.map(l => l.resource.subject))];
-        const gradeLevels = [...new Set(liked.map(l => l.resource.gradeLevel))];
-        const likedIds = liked.map(l => l.resource._id);
+        const subjects = [...new Set(liked.map(l => l.resource?.subject).filter(s => s))];
+        const gradeLevels = [...new Set(liked.map(l => l.resource?.gradeLevel).filter(g => g))];
+        const likedIds = liked.map(l => l.resource?._id).filter(id => id);
 
         if (subjects.length === 0 && gradeLevels.length === 0) {
             const popular = await Resource.find({ uploader: { $ne: userId } })
@@ -557,6 +570,7 @@ export const getRecommendedResources = async (req, res) => {
             pagination: { currentPage: page, totalPages: Math.ceil(total / limit), totalResources: total }
         });
     } catch (error) {
+        console.error('Error in getRecommendedResources:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -574,6 +588,7 @@ export const getResourceRatings = async (req, res) => {
             data: ratings
         });
     } catch (error) {
+        console.error('Error in getResourceRatings:', error);
         res.status(500).json({
             success: false,
             message: error.message
