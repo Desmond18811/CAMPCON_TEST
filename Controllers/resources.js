@@ -7,6 +7,41 @@ import View from "../Models/View.js";
 import Notification from "../Models/Notification.js";
 import path from 'path';
 
+// File type to resourceType mapping for auto-detection
+const fileTypeToResourceType = {
+    // Images
+    '.jpeg': 'image',
+    '.jpg': 'image',
+    '.png': 'image',
+    '.gif': 'image',
+    '.webp': 'image',
+    '.bmp': 'image',
+    // Documents
+    '.pdf': 'document',
+    '.doc': 'document',
+    '.docx': 'document',
+    '.txt': 'document',
+    '.rtf': 'document',
+    '.odt': 'document',
+    // Presentations
+    '.ppt': 'presentation',
+    '.pptx': 'presentation',
+    // Spreadsheets
+    '.xls': 'spreadsheet',
+    '.xlsx': 'spreadsheet',
+    '.csv': 'spreadsheet',
+    // Videos
+    '.mp4': 'video',
+    '.mov': 'video',
+    '.avi': 'video',
+    // Audio
+    '.mp3': 'audio',
+    '.wav': 'audio',
+    // Archives
+    '.zip': 'archive',
+    '.rar': 'archive'
+};
+
 // Get all resources with optional filtering
 export const getAllResources = async (req, res) => {
     try {
@@ -34,7 +69,7 @@ export const getAllResources = async (req, res) => {
         // Add fileType to each resource
         const resourcesWithFileType = resources.map(resource => ({
             ...resource._doc,
-            fileType: resource.fileUrl ? path.extname(resource.fileUrl).toLowerCase() : ''
+            fileType: resource.fileType || (resource.fileUrl ? path.extname(resource.fileUrl).toLowerCase() : '')
         }));
 
         res.json({
@@ -89,7 +124,7 @@ export const getResource = async (req, res) => {
         // Add fileType to resource
         const resourceWithFileType = {
             ...resource._doc,
-            fileType: resource.fileUrl ? path.extname(resource.fileUrl).toLowerCase() : ''
+            fileType: resource.fileType || (resource.fileUrl ? path.extname(resource.fileUrl).toLowerCase() : '')
         };
 
         res.json({
@@ -118,17 +153,17 @@ export const createResource = async (req, res) => {
             });
         }
 
-        const { title, description = '', subject, gradeLevel, resourceType, tags = [], username, profileColor } = req.body;
+        let { title, description = '', subject, gradeLevel, resourceType, tags = [], username, profileColor } = req.body;
         console.log('Request body:', req.body);
         console.log('Files:', req.files);
         console.log('User:', { id: req.user._id, username: req.user.username });
 
         // Validate required fields
-        if (!title || !subject || !gradeLevel || !resourceType) {
-            console.log('Missing required fields:', { title, subject, gradeLevel, resourceType });
+        if (!title || !subject || !gradeLevel) {
+            console.log('Missing required fields:', { title, subject, gradeLevel });
             return res.status(400).json({
                 success: false,
-                message: 'Missing required fields: title, subject, gradeLevel, or resourceType'
+                message: 'Missing required fields: title, subject, or gradeLevel'
             });
         }
 
@@ -155,6 +190,12 @@ export const createResource = async (req, res) => {
                 success: false,
                 message: 'File upload is required'
             });
+        }
+
+        // Auto-detect resourceType if not provided
+        if (!resourceType && fileType) {
+            resourceType = fileTypeToResourceType[fileType] || 'document';
+            console.log(`Auto-detected resourceType: ${resourceType} from fileType: ${fileType}`);
         }
 
         // Parse @username tags from description
@@ -248,7 +289,7 @@ export const createResource = async (req, res) => {
 // Update resource
 export const updateResource = async (req, res) => {
     try {
-        const { description = '', title, subject, gradeLevel, resourceType, tags, profileColor, profilePic } = req.body;
+        let { description = '', title, subject, gradeLevel, resourceType, tags, profileColor, profilePic } = req.body;
         const resource = await Resource.findById(req.params.id);
 
         if (!resource) {
@@ -263,6 +304,19 @@ export const updateResource = async (req, res) => {
                 success: false,
                 message: 'Not authorized to update this resource'
             });
+        }
+
+        let updateFileUrl = resource.fileUrl;
+        let updateFileType = resource.fileType;
+        if (req.files && req.files['file'] && req.files['file'][0]) {
+            updateFileUrl = `/Uploads/${req.files['file'][0].filename}`;
+            updateFileType = path.extname(req.files['file'][0].originalname).toLowerCase();
+        }
+
+        // Auto-detect resourceType if not provided and file is updated
+        if (!resourceType && updateFileType) {
+            resourceType = fileTypeToResourceType[updateFileType] || 'document';
+            console.log(`Auto-detected resourceType: ${resourceType} from fileType: ${updateFileType}`);
         }
 
         // Parse @username tags from description
@@ -286,17 +340,22 @@ export const updateResource = async (req, res) => {
             }
         }
 
-        let updateData = { title, description, subject, gradeLevel, resourceType, tags, profileColor, profilePic, taggedUsers: validTaggedUsers };
+        let updateData = {
+            title,
+            description,
+            subject,
+            gradeLevel,
+            tags,
+            profileColor,
+            profilePic,
+            taggedUsers: validTaggedUsers,
+            fileUrl: updateFileUrl,
+            fileType: updateFileType,
+            resourceType
+        };
         if (req.files) {
-            if (req.files['file'] && req.files['file'][0]) {
-                updateData.fileUrl = `/Uploads/${req.files['file'][0].filename}`;
-                updateData.fileType = path.extname(req.files['file'][0].originalname).toLowerCase();
-            }
             if (req.files['image'] && req.files['image'][0]) {
                 updateData.imageUrl = `/Uploads/${req.files['image'][0].filename}`;
-            }
-            if (req.files['profilePic'] && req.files['profilePic'][0]) {
-                updateData.profilePic = `/Uploads/${req.files['profilePic'][0].filename}`;
             }
         }
 
@@ -542,9 +601,18 @@ export const getLikedResources = async (req, res) => {
 
         const total = await Like.countDocuments({ user: userId });
 
+        // Ensure fileType is present
+        const likedResources = likes.map(l => {
+            const resDoc = l.resource._doc || l.resource;
+            return {
+                ...resDoc,
+                fileType: resDoc.fileType || (resDoc.fileUrl ? path.extname(resDoc.fileUrl).toLowerCase() : '')
+            };
+        }).filter(r => r);
+
         res.json({
             success: true,
-            data: likes.map(l => l.resource).filter(r => r),
+            data: likedResources,
             pagination: {
                 currentPage: page,
                 totalPages: Math.ceil(total / limit),
@@ -577,9 +645,18 @@ export const getSavedResources = async (req, res) => {
 
         const total = await Save.countDocuments({ user: userId });
 
+        // Ensure fileType is present
+        const savedResources = saves.map(s => {
+            const resDoc = s.resource._doc || s.resource;
+            return {
+                ...resDoc,
+                fileType: resDoc.fileType || (resDoc.fileUrl ? path.extname(resDoc.fileUrl).toLowerCase() : '')
+            };
+        }).filter(r => r);
+
         res.json({
             success: true,
-            data: saves.map(s => s.resource).filter(r => r),
+            data: savedResources,
             pagination: {
                 currentPage: page,
                 totalPages: Math.ceil(total / limit),
@@ -644,9 +721,15 @@ export const getRecommendedResources = async (req, res) => {
 
             const total = await Resource.countDocuments({ uploader: { $ne: userId } });
 
+            // Ensure fileType is present
+            const popularWithFileType = popular.map(p => ({
+                ...p._doc,
+                fileType: p.fileType || (p.fileUrl ? path.extname(p.fileUrl).toLowerCase() : '')
+            }));
+
             return res.json({
                 success: true,
-                data: popular,
+                data: popularWithFileType,
                 pagination: { currentPage: page, totalPages: Math.ceil(total / limit), totalResources: total }
             });
         }
@@ -665,9 +748,15 @@ export const getRecommendedResources = async (req, res) => {
 
         const total = await Resource.countDocuments(filter);
 
+        // Ensure fileType is present
+        const recommendedWithFileType = recommended.map(p => ({
+            ...p._doc,
+            fileType: p.fileType || (p.fileUrl ? path.extname(p.fileUrl).toLowerCase() : '')
+        }));
+
         res.json({
             success: true,
-            data: recommended,
+            data: recommendedWithFileType,
             pagination: { currentPage: page, totalPages: Math.ceil(total / limit), totalResources: total }
         });
     } catch (error) {
