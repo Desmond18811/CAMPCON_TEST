@@ -1,5 +1,4 @@
 import express from 'express';
-import { isAuthenticated } from '../Middleware/auth.js';
 import {
     getAllResources,
     getResource,
@@ -16,6 +15,7 @@ import {
     getResourceRatings
 } from '../Controllers/resources.js';
 import upload from '../Middleware/multerConfig.js';
+import {isAuthenticated} from "../Middleware/Auth.js";
 
 const router = express.Router();
 
