@@ -21,15 +21,18 @@ const ratingSchema = new mongoose.Schema({
         type: String,
         maxlength: 500
     },
+    taggedUsers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
     createdAt: {
         type: Date,
         default: Date.now
     }
 });
 
-// Prevent duplicate ratings from the same user on the same resource
 ratingSchema.index({ user: 1, resource: 1 }, { unique: true });
 
- const Rating= mongoose.model('Rating', ratingSchema);
+const Rating = mongoose.model('Rating', ratingSchema);
 
- export default Rating;
+export default Rating;

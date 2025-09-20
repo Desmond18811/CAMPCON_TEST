@@ -21,10 +21,22 @@ const resourceSchema = new mongoose.Schema({
         type: [String],
         default: []
     },
+    taggedUsers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
     uploader: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
+    },
+    profilePic: {
+        type: String,
+        default: ''
+    },
+    profileColor: {
+        type: String,
+        default: '#cc002e'
     },
     subject: {
         type: String,
@@ -47,13 +59,6 @@ const resourceSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
-});
-
-resourceSchema.add({
     likeCount: {
         type: Number,
         default: 0
@@ -61,8 +66,12 @@ resourceSchema.add({
     viewCount: {
         type: Number,
         default: 0
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
     }
-})
+});
 
 resourceSchema.index({title: 'text', description: 'text'})
 
