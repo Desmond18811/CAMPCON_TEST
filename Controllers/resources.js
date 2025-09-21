@@ -42,6 +42,9 @@ const fileTypeToResourceType = {
     '.rar': 'archive'
 };
 
+// Image extensions for auto-setting imageUrl
+const imageExtensions = ['.jpeg', '.jpg', '.png', '.gif', '.webp', '.bmp'];
+
 // Get all resources with optional filtering
 export const getAllResources = async (req, res) => {
     try {
@@ -192,6 +195,12 @@ export const createResource = async (req, res) => {
             });
         }
 
+        // Auto-set imageUrl if no separate image uploaded and main file is an image
+        if (!imageUrl && imageExtensions.includes(fileType)) {
+            imageUrl = fileUrl;
+            console.log(`Auto-set imageUrl to fileUrl for image file: ${fileUrl}`);
+        }
+
         // Auto-detect resourceType if not provided
         if (!resourceType && fileType) {
             resourceType = fileTypeToResourceType[fileType] || 'document';
@@ -307,14 +316,24 @@ export const updateResource = async (req, res) => {
         }
 
         let updateFileUrl = resource.fileUrl;
+        let updateImageUrl = resource.imageUrl;
         let updateFileType = resource.fileType;
         if (req.files && req.files['file'] && req.files['file'][0]) {
             updateFileUrl = `/Uploads/${req.files['file'][0].filename}`;
             updateFileType = path.extname(req.files['file'][0].originalname).toLowerCase();
         }
+        if (req.files && req.files['image'] && req.files['image'][0]) {
+            updateImageUrl = `/Uploads/${req.files['image'][0].filename}`;
+        }
+
+        // Auto-set imageUrl if no separate image uploaded and main file is an image
+        if (imageExtensions.includes(updateFileType) && !updateImageUrl) {
+            updateImageUrl = updateFileUrl;
+            console.log(`Auto-set imageUrl to fileUrl for image file: ${updateFileUrl}`);
+        }
 
         // Auto-detect resourceType if not provided and file is updated
-        if (!resourceType && updateFileType) {
+        if (!resourceType && updateFileType !== resource.fileType) {
             resourceType = fileTypeToResourceType[updateFileType] || 'document';
             console.log(`Auto-detected resourceType: ${resourceType} from fileType: ${updateFileType}`);
         }
@@ -350,14 +369,10 @@ export const updateResource = async (req, res) => {
             profilePic,
             taggedUsers: validTaggedUsers,
             fileUrl: updateFileUrl,
+            imageUrl: updateImageUrl,
             fileType: updateFileType,
             resourceType
         };
-        if (req.files) {
-            if (req.files['image'] && req.files['image'][0]) {
-                updateData.imageUrl = `/Uploads/${req.files['image'][0].filename}`;
-            }
-        }
 
         const updatedResource = await Resource.findByIdAndUpdate(
             req.params.id,
@@ -524,15 +539,18 @@ export const likeResource = async (req, res) => {
 
         const existingLike = await Like.findOne({ user: userId, resource: resourceId });
 
+        let newLikeCount;
+        let message;
         if (existingLike) {
             await Like.deleteOne({ _id: existingLike._id });
             await User.findByIdAndUpdate(userId, { $pull: { likedResources: resourceId } });
-            await Resource.findByIdAndUpdate(resourceId, { $inc: { likeCount: -1 } });
-            return res.json({ success: true, message: 'Resource unliked' });
+            newLikeCount = resource.likeCount - 1;
+            message = 'Resource unliked';
         } else {
             await Like.create({ user: userId, resource: resourceId });
             await User.findByIdAndUpdate(userId, { $push: { likedResources: resourceId } });
-            await Resource.findByIdAndUpdate(resourceId, { $inc: { likeCount: 1 } });
+            newLikeCount = resource.likeCount + 1;
+            message = 'Resource liked';
             if (resource.uploader.toString() !== userId.toString()) {
                 await Notification.create({
                     recipient: resource.uploader,
@@ -542,8 +560,14 @@ export const likeResource = async (req, res) => {
                     message: `${req.user.username} liked your resource "${resource.title}"`
                 });
             }
-            return res.json({ success: true, message: 'Resource liked' });
         }
+        await Resource.findByIdAndUpdate(resourceId, { likeCount: newLikeCount });
+
+        res.json({
+            success: true,
+            message,
+            likeCount: newLikeCount
+        });
     } catch (error) {
         console.error('Error in likeResource:', { message: error.message, stack: error.stack });
         res.status(500).json({
@@ -566,15 +590,22 @@ export const saveResource = async (req, res) => {
 
         const existingSave = await Save.findOne({ user: userId, resource: resourceId });
 
+        let message;
         if (existingSave) {
             await Save.deleteOne({ _id: existingSave._id });
             await User.findByIdAndUpdate(userId, { $pull: { savedResources: resourceId } });
-            return res.json({ success: true, message: 'Resource unsaved' });
+            message = 'Resource unsaved';
         } else {
             await Save.create({ user: userId, resource: resourceId });
             await User.findByIdAndUpdate(userId, { $push: { savedResources: resourceId } });
-            return res.json({ success: true, message: 'Resource saved' });
+            message = 'Resource saved';
         }
+
+        res.json({
+            success: true,
+            message,
+            saved: message === 'Resource saved'
+        });
     } catch (error) {
         console.error('Error in saveResource:', { message: error.message, stack: error.stack });
         res.status(500).json({
@@ -593,7 +624,10 @@ export const getLikedResources = async (req, res) => {
         const likes = await Like.find({ user: userId })
             .populate({
                 path: 'resource',
-                populate: { path: 'uploader', select: 'username profilePic profileColor' }
+                populate: [
+                    { path: 'uploader', select: 'username profilePic profileColor' },
+                    { path: 'taggedUsers', select: 'username profilePic profileColor' }
+                ]
             })
             .sort({ createdAt: -1 })
             .limit(limit * 1)
@@ -637,7 +671,10 @@ export const getSavedResources = async (req, res) => {
         const saves = await Save.find({ user: userId })
             .populate({
                 path: 'resource',
-                populate: { path: 'uploader', select: 'username profilePic profileColor' }
+                populate: [
+                    { path: 'uploader', select: 'username profilePic profileColor' },
+                    { path: 'taggedUsers', select: 'username profilePic profileColor' }
+                ]
             })
             .sort({ createdAt: -1 })
             .limit(limit * 1)
@@ -715,6 +752,7 @@ export const getRecommendedResources = async (req, res) => {
         if (subjects.length === 0 && gradeLevels.length === 0) {
             const popular = await Resource.find({ uploader: { $ne: userId } })
                 .populate('uploader', 'username profilePic profileColor')
+                .populate('taggedUsers', 'username profilePic profileColor')
                 .sort({ likeCount: -1, averageRating: -1, viewCount: -1 })
                 .limit(limit * 1)
                 .skip((page - 1) * limit);
@@ -742,6 +780,7 @@ export const getRecommendedResources = async (req, res) => {
 
         const recommended = await Resource.find(filter)
             .populate('uploader', 'username profilePic profileColor')
+            .populate('taggedUsers', 'username profilePic profileColor')
             .sort({ likeCount: -1, averageRating: -1, viewCount: -1 })
             .limit(limit * 1)
             .skip((page - 1) * limit);
