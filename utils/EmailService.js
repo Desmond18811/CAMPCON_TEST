@@ -104,3 +104,43 @@ export const sendLaunchEmail = async (subscribers) => {
         throw error;
     }
 };
+
+export const welcomeEmail = async (email) => {
+    const transporter = createTransporter();
+
+    const mailOptions = {
+        from: `Campus Connect <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: 'Welcome to Our Campus Connect 🎓!!',
+        html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #333;">🎓 Welcome to Campus Connect!</h2>
+                <p>Thank you for joining us! We're excited to have you on board.</p>
+                <br>
+                <p>Best regards,<br>The Campus Connect Team</p>
+            </div> 
+`,
+    };
+
+    try {
+        await transporter.verify();
+        console.log(' ✅ SMTP server is ready to take our messages');
+
+        const result = await transporter.sendMail(mailOptions);
+        console.log(`✅ welcome email sent to ${email}`);
+
+        transporter.close();
+
+        return {
+            success: true,
+            messageId: result.messageId,
+        }
+    }catch(error) {
+        console.error(`❌ Failed to send welcome email to ${email}:`, error.message);
+
+        // Close the transporter on error
+        transporter.close();
+
+        throw new Error(`Email sending failed: ${error.message}`);
+    }
+}
