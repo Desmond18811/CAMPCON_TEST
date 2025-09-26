@@ -12,6 +12,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import multer from "multer";
+import commentsRouter from "./Router/commentsRouter.js";
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -52,6 +53,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/resources', resourcesRouter);
 app.use('/api/users', userRouter);
 app.use('/api/notifications', notificationRouter);
+app.use('/api/comments', commentsRouter)
 
 // Root endpoint
 app.get('/', (req, res) => {
