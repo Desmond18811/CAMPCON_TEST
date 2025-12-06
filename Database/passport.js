@@ -80,7 +80,7 @@ passport.use(
     new JwtStrategy(
         {
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), // Expect JWT in Authorization: Bearer <token>
-            secretOrKey: process.env.JWT_SECRET
+            secretOrKey: process.env.JWT_SECRET || 'development_secret'
         },
         async (jwtPayload, done) => {
             try {
