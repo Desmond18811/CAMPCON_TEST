@@ -133,7 +133,7 @@ export const createProfile = async (req, res) => {
 
         // Handle profile picture upload if provided
         if (req.file) {
-            updates.profilePic = `/uploads/${req.file.filename}`;
+            updates.profilePic = req.file.path;
         }
 
         // Create or update the profile
@@ -163,7 +163,7 @@ export const updateProfile = async (req, res) => {
 
         // Handle profile picture upload if provided
         if (req.file) {
-            updates.profilePic = `/uploads/${req.file.filename}`;
+            updates.profilePic = req.file.path;
         }
 
         // Ensure gradeLevel (mapped from level in frontend) is handled

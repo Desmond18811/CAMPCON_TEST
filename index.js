@@ -13,6 +13,8 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import multer from "multer";
 import commentsRouter from "./Router/commentsRouter.js";
+import http from 'http';
+import { initSocket } from './Socket.js';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -21,6 +23,9 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+const io = initSocket(server);
+
 const PORT = process.env.PORT || 3000;
 
 // Create Uploads directory if it doesn't exist
@@ -43,6 +48,12 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Attach Socket.io to request object
+app.use((req, res, next) => {
+    req.io = io;
+    next();
+});
 
 // Initialize Passport
 app.use(passport.initialize());
@@ -86,7 +97,7 @@ app.use((err, req, res, next) => {
 
 // Connect to MongoDB and start server
 connectDb().then(() => {
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
         console.log(`🟢 Listening on port http://localhost:${PORT}`);
     });
 }).catch(err => {

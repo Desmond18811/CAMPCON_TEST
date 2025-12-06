@@ -1,6 +1,6 @@
 import express from 'express';
 import { isAuthenticated } from '../Middleware/Auth.js';
-import uploadMiddleware from '../Middleware/multerConfig.js';
+import upload from '../Middleware/upload.js';
 import {
     getAllResources,
     getResource,
@@ -24,8 +24,15 @@ router.get('/liked', isAuthenticated, getLikedResources);
 router.get('/saved', isAuthenticated, getSavedResources);
 router.get('/recommended', isAuthenticated, getRecommendedResources);
 router.get('/:id', getResource);
-router.post('/', isAuthenticated, uploadMiddleware, createResource);
-router.put('/:id', isAuthenticated, uploadMiddleware, updateResource);
+// Configure fields for resources
+const resourceUpload = upload.fields([
+    { name: 'file', maxCount: 1 },
+    { name: 'image', maxCount: 1 },
+    { name: 'profilePic', maxCount: 1 }
+]);
+
+router.post('/', isAuthenticated, resourceUpload, createResource);
+router.put('/:id', isAuthenticated, resourceUpload, updateResource);
 router.delete('/:id', isAuthenticated, deleteResource);
 router.post('/:id/rate', isAuthenticated, rateResource);
 router.post('/:id/like', isAuthenticated, likeResource);

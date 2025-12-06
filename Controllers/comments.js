@@ -3,23 +3,23 @@ import Resource from "../Models/Resource.js";
 import User from "../Models/User.js";
 import Notification from "../Models/Notification.js";
 
-export const getComments = async(req, res) => {
-    try{
+export const getComments = async (req, res) => {
+    try {
         const { resourceId } = req.params;
-        const { page = 1, limit = 20, parentId }= req.query
+        const { page = 1, limit = 20, parentId } = req.query
 
-          const filter = { resource: resourceId };
-   if (parentId) {
-              filter.parentId = parentId;
-          }
-   const comments = await Comment.find(filter)
-       .populate('user', 'username profilePic profileColor')
-       .populate('taggedUsers', 'username profilePic profileColor')
-       .sort({ createdAt: -1 })
-       .skip((page - 1) * limit)
-       .limit(Number(limit));
+        const filter = { resource: resourceId };
+        if (parentId) {
+            filter.parentId = parentId;
+        }
+        const comments = await Comment.find(filter)
+            .populate('user', 'username profilePic profileColor')
+            .populate('taggedUsers', 'username profilePic profileColor')
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(Number(limit));
 
-   const total = await Comment.countDocuments(filter);
+        const total = await Comment.countDocuments(filter);
         const commentsWithReplies = await Promise.all(comments.map(async (comment) => {
             const replyCount = await Comment.countDocuments({ parent: comment._id });
             return {
@@ -39,10 +39,10 @@ export const getComments = async(req, res) => {
         });
     } catch (error) {
         return res.status(500).json({
-           status: 500,
-           statusCode: 'error',
-           message: error.message,
-       })
+            status: 500,
+            statusCode: 'error',
+            message: error.message,
+        })
     }
 }
 
@@ -130,7 +130,7 @@ export const createComment = async (req, res) => {
         }
 
         // Real-time event
-        io.to(resourceId).emit('newComment', populatedComment);
+        req.io.to(resourceId).emit('newComment', populatedComment);
 
         res.status(201).json({
             success: true,
@@ -205,7 +205,7 @@ export const updateComment = async (req, res) => {
             }
         }
 
-        io.to(comment.resource.toString()).emit('updatedComment', populatedComment);
+        req.io.to(comment.resource.toString()).emit('updatedComment', populatedComment);
 
         res.json({
             success: true,
@@ -252,7 +252,7 @@ export const deleteComment = async (req, res) => {
 
         await deleteCommentAndReplies(commentId);
 
-        io.to(comment.resource.toString()).emit('deletedComment', { commentId });
+        req.io.to(comment.resource.toString()).emit('deletedComment', { commentId });
 
         res.json({
             success: true,
@@ -303,7 +303,7 @@ export const likeComment = async (req, res) => {
 
         await comment.save();
 
-        io.to(comment.resource.toString()).emit('commentLiked', {
+        req.io.to(comment.resource.toString()).emit('commentLiked', {
             commentId,
             likes: comment.likes.length,
             userId

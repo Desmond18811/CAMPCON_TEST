@@ -180,14 +180,14 @@ export const createResource = async (req, res) => {
         let fileType = '';
         if (req.files) {
             if (req.files['file'] && req.files['file'][0]) {
-                fileUrl = `/Uploads/${req.files['file'][0].filename}`;
+                fileUrl = req.files['file'][0].path;
                 fileType = path.extname(req.files['file'][0].originalname).toLowerCase();
             }
             if (req.files['image'] && req.files['image'][0]) {
-                imageUrl = `/Uploads/${req.files['image'][0].filename}`;
+                imageUrl = req.files['image'][0].path;
             }
             if (req.files['profilePic'] && req.files['profilePic'][0]) {
-                profilePic = `/Uploads/${req.files['profilePic'][0].filename}`;
+                profilePic = req.files['profilePic'][0].path;
             }
         }
 
@@ -323,11 +323,11 @@ export const updateResource = async (req, res) => {
         let updateImageUrl = resource.imageUrl;
         let updateFileType = resource.fileType;
         if (req.files && req.files['file'] && req.files['file'][0]) {
-            updateFileUrl = `/Uploads/${req.files['file'][0].filename}`;
+            updateFileUrl = req.files['file'][0].path;
             updateFileType = path.extname(req.files['file'][0].originalname).toLowerCase();
         }
         if (req.files && req.files['image'] && req.files['image'][0]) {
-            updateImageUrl = `/Uploads/${req.files['image'][0].filename}`;
+            updateImageUrl = req.files['image'][0].path;
         }
 
         // Auto-set imageUrl if no separate image uploaded and main file is an image
