@@ -6,6 +6,7 @@ import Save from "../Models/Save.js";
 import View from "../Models/View.js";
 import Notification from "../Models/Notification.js";
 import path from 'path';
+import cloudinary from '../utils/cloudinary.js';
 
 // File type to resourceType mapping for auto-detection
 const fileTypeToResourceType = {
@@ -199,10 +200,26 @@ export const createResource = async (req, res) => {
             });
         }
 
-        // Auto-set imageUrl if no separate image uploaded and main file is an image
-        if (!imageUrl && imageExtensions.includes(fileType)) {
-            imageUrl = fileUrl;
-            console.log(`Auto-set imageUrl to fileUrl for image file: ${fileUrl}`);
+        // Auto-set imageUrl if no separate image uploaded
+        if (!imageUrl && fileUrl && req.files['file'] && req.files['file'][0].filename) {
+            const publicId = req.files['file'][0].filename;
+
+            if (imageExtensions.includes(fileType)) {
+                imageUrl = fileUrl;
+                console.log(`Auto-set imageUrl to fileUrl for image file: ${fileUrl}`);
+            } else if (['.mp4', '.mov', '.avi', '.mkv', '.webm'].includes(fileType)) {
+                // Generate thumbnail for video
+                imageUrl = cloudinary.url(publicId, { resource_type: 'video', format: 'jpg', start_offset: 'auto' });
+                console.log(`Generated video thumbnail: ${imageUrl}`);
+            } else if (fileType === '.pdf') {
+                // Generate thumbnail for PDF (first page)
+                imageUrl = cloudinary.url(publicId, { resource_type: 'image', format: 'jpg', page: 1 });
+                console.log(`Generated PDF thumbnail: ${imageUrl}`);
+            } else if (['.ppt', '.pptx'].includes(fileType)) {
+                // Generate thumbnail for PowerPoint (first page) - Assumes uploaded as image/document compatible
+                imageUrl = cloudinary.url(publicId, { resource_type: 'image', format: 'jpg', page: 1 });
+                console.log(`Generated PPT thumbnail: ${imageUrl}`);
+            }
         }
 
         // Auto-detect resourceType if not provided
@@ -330,10 +347,23 @@ export const updateResource = async (req, res) => {
             updateImageUrl = req.files['image'][0].path;
         }
 
-        // Auto-set imageUrl if no separate image uploaded and main file is an image
-        if (imageExtensions.includes(updateFileType) && !updateImageUrl) {
-            updateImageUrl = updateFileUrl;
-            console.log(`Auto-set imageUrl to fileUrl for image file: ${updateFileUrl}`);
+        // Auto-set imageUrl if new file uploaded and no new image provided
+        if (req.files && req.files['file'] && req.files['file'][0] && (!req.files['image'] || !req.files['image'][0])) {
+            const publicId = req.files['file'][0].filename;
+
+            if (imageExtensions.includes(updateFileType)) {
+                updateImageUrl = updateFileUrl;
+                console.log(`Auto-set imageUrl to fileUrl for updated image file: ${updateFileUrl}`);
+            } else if (['.mp4', '.mov', '.avi', '.mkv', '.webm'].includes(updateFileType)) {
+                updateImageUrl = cloudinary.url(publicId, { resource_type: 'video', format: 'jpg', start_offset: 'auto' });
+                console.log(`Generated updated video thumbnail: ${updateImageUrl}`);
+            } else if (updateFileType === '.pdf') {
+                updateImageUrl = cloudinary.url(publicId, { resource_type: 'image', format: 'jpg', page: 1 });
+                console.log(`Generated updated PDF thumbnail: ${updateImageUrl}`);
+            } else if (['.ppt', '.pptx'].includes(updateFileType)) {
+                updateImageUrl = cloudinary.url(publicId, { resource_type: 'image', format: 'jpg', page: 1 });
+                console.log(`Generated updated PPT thumbnail: ${updateImageUrl}`);
+            }
         }
 
         // Auto-detect resourceType if not provided and file is updated
