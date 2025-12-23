@@ -28,15 +28,8 @@ const io = initSocket(server);
 
 const PORT = process.env.PORT || 3000;
 
-// Create Uploads directory if it doesn't exist
-const uploadDir = path.join(__dirname, 'Uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-    console.log('Created Uploads directory');
-}
+// Cloudinary is used for storage, no local uploads needed
 
-// Serve static files from uploads directory
-app.use('/Uploads', express.static(uploadDir));
 
 // Add CORS middleware
 app.use(cors({

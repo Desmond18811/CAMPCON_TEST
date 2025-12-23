@@ -14,10 +14,10 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: function() {
+        required: function () {
             return !this.googleId; // Password not required if using Google OAuth
         },
-        minlength: [6, 'Password must be at least 6 characters'] // Added basic validation
+        minlength: [6, 'Password must be at least 8 characters'] // Added basic validation
     },
     googleId: {
         type: String,
@@ -45,6 +45,14 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: '' // Can set a default placeholder URL if desired, e.g., '/default-avatar.png'
     },
+    passwordResetToken: {
+        type: String,
+        default: null
+    },
+    passwordResetExpires: {
+        type: Date,
+        default: null
+    },
     createdAt: {
         type: Date,
         default: Date.now
@@ -52,14 +60,14 @@ const userSchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
     if (!this.isModified('password') || !this.password) return next();
     this.password = await bcrypt.hash(this.password, 12);
     next();
 });
 
 // Compare password method
-userSchema.methods.correctPassword = async function(candidatePassword, userPassword) {
+userSchema.methods.correctPassword = async function (candidatePassword, userPassword) {
     return await bcrypt.compare(candidatePassword, userPassword);
 };
 
