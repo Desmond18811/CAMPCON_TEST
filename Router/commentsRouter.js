@@ -1,5 +1,5 @@
 import express from 'express';
-import { isAuthenticated } from "../Middleware/Auth.js";
+import { isAuthenticated } from "../Middleware/auth.js";
 import { createComment, deleteComment, getComments, likeComment, dislikeComment, updateComment } from "../Controllers/comments.js";
 
 const router = express.Router();
