@@ -45,6 +45,15 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: '' // Can set a default placeholder URL if desired, e.g., '/default-avatar.png'
     },
+    profileCompleted: { // Whether the user finished profile setup (Google signups start incomplete)
+        type: Boolean,
+        default: false
+    },
+    lastCheckpoint: { // Last app section the user was in, e.g. '/settings' — used to resume sessions
+        type: String,
+        default: '',
+        maxlength: 200
+    },
     passwordResetToken: {
         type: String,
         default: null

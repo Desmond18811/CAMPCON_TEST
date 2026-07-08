@@ -15,6 +15,13 @@ passport.use(
                 return done(null, false, { message: 'Incorrect email or password' });
             }
 
+            // Google-only accounts have no password hash; bcrypt.compare would throw
+            if (!user.password) {
+                return done(null, false, {
+                    message: 'This account was created with Google. Please log in with Google, or use "Forgot Password" to set a password.'
+                });
+            }
+
             // Check if password is correct
             const isPasswordCorrect = await user.correctPassword(password, user.password);
 

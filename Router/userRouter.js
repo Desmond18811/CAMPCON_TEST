@@ -1,5 +1,5 @@
 import express from 'express';
-import { getProfile, updateProfile, createProfile } from '../Controllers/users.js';
+import { getProfile, updateProfile, createProfile, updateCheckpoint } from '../Controllers/users.js';
 import { isAuthenticated } from '../Middleware/auth.js';
 import upload from '../Middleware/upload.js';
 
@@ -7,6 +7,9 @@ const router = express.Router();
 
 // Get profile
 router.get('/profile', isAuthenticated, getProfile);
+
+// Save last visited section so the user can resume where they stopped
+router.patch('/checkpoint', isAuthenticated, updateCheckpoint);
 
 // Create a profile (new endpoint)
 router.post('/profile', isAuthenticated, upload.single('profilePic'), createProfile);

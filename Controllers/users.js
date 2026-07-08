@@ -17,9 +17,17 @@ export const register = async (req, res) => {
         });
 
         if (existingUser) {
-            return res.status(400).json({
+            let message = '🔴 User already exists with this email or username';
+            if (existingUser.email === email && existingUser.googleId && !existingUser.password) {
+                message = '🔴 An account with this email was created with Google. Please log in with Google instead.';
+            } else if (existingUser.email === email) {
+                message = '🔴 An account with this email already exists. Please log in instead.';
+            } else if (existingUser.username === username) {
+                message = '🔴 This username is already taken. Please choose another one.';
+            }
+            return res.status(409).json({
                 success: false,
-                message: '🔴 User already exists with this email or username'
+                message
             });
         }
 
@@ -27,7 +35,8 @@ export const register = async (req, res) => {
             username,
             email,
             password,
-            school
+            school,
+            profileCompleted: true // regular signup collects username and school upfront
         });
 
         const token = signToken(newUser._id);
@@ -41,6 +50,21 @@ export const register = async (req, res) => {
             token
         });
     } catch (error) {
+        // Duplicate key race (unique index on email/username)
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyPattern || {})[0] || 'account';
+            return res.status(409).json({
+                success: false,
+                message: `🔴 This ${field} is already in use.`
+            });
+        }
+        if (error.name === 'ValidationError') {
+            const firstError = Object.values(error.errors)[0]?.message || 'Invalid registration data';
+            return res.status(400).json({
+                success: false,
+                message: `🔴 ${firstError}`
+            });
+        }
         res.status(500).json({
             success: false,
             message: error.message
@@ -129,6 +153,7 @@ export const createProfile = async (req, res) => {
             school: schoolName,
             gradeLevel: level,
             bio: bio || '',
+            profileCompleted: true,
         };
 
         // Handle profile picture upload if provided
@@ -172,6 +197,8 @@ export const updateProfile = async (req, res) => {
             delete updates.level;
         }
 
+        updates.profileCompleted = true;
+
         // Update only provided fields
         const updatedUser = await User.findByIdAndUpdate(
             req.user._id,
@@ -190,6 +217,32 @@ export const updateProfile = async (req, res) => {
             success: true,
             message: 'Profile updated successfully',
             data: updatedUser
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// Save the user's last checkpoint (route/section) so sessions can resume where they stopped
+export const updateCheckpoint = async (req, res) => {
+    try {
+        const { checkpoint } = req.body;
+
+        if (typeof checkpoint !== 'string' || checkpoint.length > 200 || !checkpoint.startsWith('/')) {
+            return res.status(400).json({
+                success: false,
+                message: 'Checkpoint must be an app path like "/home" (max 200 chars)'
+            });
+        }
+
+        await User.findByIdAndUpdate(req.user._id, { lastCheckpoint: checkpoint });
+
+        res.json({
+            success: true,
+            data: { lastCheckpoint: checkpoint }
         });
     } catch (error) {
         res.status(500).json({
