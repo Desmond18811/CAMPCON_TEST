@@ -48,3 +48,6 @@ jspm_packages/
 
 # next.js build output
 .next
+# API test harness state (contains test credentials)
+tests/.state.json
+tests/.last-run.json

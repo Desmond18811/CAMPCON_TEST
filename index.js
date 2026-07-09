@@ -13,6 +13,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import multer from "multer";
 import commentsRouter from "./Router/commentsRouter.js";
+import filesRouter from "./Router/filesRouter.js";
 import blockRouter from "./Routes/block.js";
 import http from 'http';
 import { initSocket } from './Socket.js';
@@ -59,6 +60,7 @@ app.use('/api/resources', resourcesRouter);
 app.use('/api/users', userRouter);
 app.use('/api/notifications', notificationRouter);
 app.use('/api/comments', commentsRouter);
+app.use('/api/files', filesRouter);
 app.use('/api/users', blockRouter);
 
 // Root endpoint
