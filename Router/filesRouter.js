@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import { getFilebaseObject } from '../utils/filebase.js';
 
 const router = express.Router();
@@ -6,20 +7,32 @@ const router = express.Router();
 // Streams files stored in the (private) Filebase bucket to the browser.
 // URLs look like /api/files/campus-connect/<timestamp>-<hash>-<name>.<ext>
 // Supports Range requests so videos and audio can seek while playing.
+// Supports ?download=true to force Content-Disposition attachment download.
 router.get(/^\/(.+)/, async (req, res) => {
     const key = decodeURIComponent(req.params[0]);
     const range = req.headers.range;
+    const isDownload = req.query.download === 'true';
 
     try {
         const object = await getFilebaseObject(key, range);
 
         res.status(range ? 206 : 200);
-        res.set({
+        
+        const headers = {
             'Content-Type': object.ContentType || 'application/octet-stream',
             'Accept-Ranges': 'bytes',
-            // Uploaded files never change (keys are unique per upload) — cache hard
-            'Cache-Control': 'public, max-age=31536000, immutable'
-        });
+            'Cache-Control': 'public, max-age=31536000, immutable',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Range'
+        };
+
+        if (isDownload) {
+            const filename = path.basename(key);
+            headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(filename)}"`;
+        }
+
+        res.set(headers);
+
         if (object.ContentLength !== undefined) res.set('Content-Length', String(object.ContentLength));
         if (object.ContentRange) res.set('Content-Range', object.ContentRange);
 
